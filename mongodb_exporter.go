@@ -14,7 +14,7 @@ import (
 
 	"github.com/dcu/mongodb_exporter/collector"
 	"github.com/dcu/mongodb_exporter/shared"
-    "gopkg.in/yaml.v2"
+        "gopkg.in/yaml.v2"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 )
