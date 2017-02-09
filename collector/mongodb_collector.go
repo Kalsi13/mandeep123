@@ -50,52 +50,67 @@ func NewMongodbCollector(opts MongodbCollectorOpts) *MongodbCollector {
 
 // Describe describes all mongodb's metrics.
 func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
-	(&ServerStatus{}).Describe(ch)
-	(&ReplSetStatus{}).Describe(ch)
-	(&DatabaseStatus{}).Describe(ch)
+	glog.Info("Describing groups")
+	session := shared.MongoSession(exporter.Opts.URI)
+	defer session.Close()
+	if session != nil {
+		serverStatus := collector_mongos.GetServerStatus(session)
+		if serverStatus != nil {
+			serverStatus.Describe(ch)
+		}
+	}
 }
+
 
 // Collect collects all mongodb's metrics.
 func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
-	mongoSess := shared.MongoSession(exporter.Opts.toSessionOps())
+	mongoSess := shared.MongoSession(exporter.Opts.URI)
+	defer mongoSess.Close()
 	if mongoSess != nil {
-		defer mongoSess.Close()
-		glog.Info("Collecting Server Status")
-		exporter.collectServerStatus(mongoSess, ch)
-		if exporter.Opts.CollectReplSet {
-			glog.Info("Collecting ReplSet Status")
-			exporter.collectReplSetStatus(mongoSess, ch)
-		}
-		if exporter.Opts.CollectOplog {
-			glog.Info("Collecting Oplog Status")
-			exporter.collectOplogStatus(mongoSess, ch)
+		serverVersion, err := shared.MongoSessionServerVersion(mongoSess)
+		if err != nil {
+			glog.Errorf("Problem gathering the mongo server version: %s", err)
 		}
 
-		if exporter.Opts.CollectDatabaseMetrics {
-			glog.Info("Collecting Database Metrics")
-			exporter.collectDatabaseStatus(mongoSess, ch)
+		nodeType, err := shared.MongoSessionNodeType(mongoSess)
+		if err != nil {
+			glog.Errorf("Problem gathering the mongo node type: %s", err)
+		}
+
+		glog.Infof("Connected to: %s (node type: %s, server version: %s)", exporter.Opts.URI, nodeType, serverVersion)
+		switch {
+			case nodeType == "mongos":
+				exporter.collectMongos(mongoSess, ch)
+			case nodeType == "mongod":
+				exporter.collectMongod(mongoSess, ch)
+			case nodeType == "replset":
+				exporter.collectMongodReplSet(mongoSess, ch)
+			default:
+				glog.Infof("Unrecognized node type %s!", nodeType)
 		}
 	}
 }
 
-func (exporter *MongodbCollector) collectServerStatus(session *mgo.Session, ch chan<- prometheus.Metric) *ServerStatus {
-	serverStatus := GetServerStatus(session)
+func (exporter *MongodbCollector) collectMongos(session *mgo.Session, ch chan<- prometheus.Metric) {
+	glog.Info("Collecting Server Status")
+	serverStatus := collector_mongos.GetServerStatus(session)
 	if serverStatus != nil {
-		glog.Info("exporting ServerStatus Metrics")
 		serverStatus.Export(ch)
 	}
-	return serverStatus
+
+	glog.Info("Collecting Sharding Status")
+	shardingStatus := collector_mongos.GetShardingStatus(session)
+	if shardingStatus != nil {
+		shardingStatus.Export(ch)
+	}
 }
 
-func (exporter *MongodbCollector) collectReplSetStatus(session *mgo.Session, ch chan<- prometheus.Metric) *ReplSetStatus {
-	replSetStatus := GetReplSetStatus(session)
-
-	if replSetStatus != nil {
-		glog.Info("exporting ReplSetStatus Metrics")
-		replSetStatus.Export(ch)
+func (exporter *MongodbCollector) collectMongod(session *mgo.Session, ch chan<- prometheus.Metric) {
+	glog.Info("Collecting Server Status")
+	serverStatus := collector_mongod.GetServerStatus(session)
+	if serverStatus != nil {
+		serverStatus.Export(ch)
 	}
-
-	return replSetStatus
 }
 
 func (exporter *MongodbCollector) collectOplogStatus(session *mgo.Session, ch chan<- prometheus.Metric) *OplogStatus {
@@ -109,6 +124,24 @@ func (exporter *MongodbCollector) collectOplogStatus(session *mgo.Session, ch ch
 	return oplogStatus
 }
 
+func (exporter *MongodbCollector) collectMongodReplSet(session *mgo.Session, ch chan<- prometheus.Metric) {
+	exporter.collectMongod(session, ch)
+
+	glog.Info("Collecting Replset Status")
+	replSetStatus := collector_mongod.GetReplSetStatus(session)
+	if replSetStatus != nil {
+		replSetStatus.Export(ch)
+	}       
+
+	glog.Info("Collecting Replset Oplog Status")
+	oplogStatus := collector_mongod.GetOplogStatus(session)
+	if oplogStatus != nil {
+		oplogStatus.Export(ch)
+	}    
+	
+}
+
+
 func (exporter *MongodbCollector) collectDatabaseStatus(session *mgo.Session, ch chan<- prometheus.Metric) {
 	all, err := session.DatabaseNames()
 	if err != nil {
@@ -117,7 +150,7 @@ func (exporter *MongodbCollector) collectDatabaseStatus(session *mgo.Session, ch
 	}
 	for _, db := range all {
 		if db != "admin" && db != "test" {
-			dbStatus := GetDatabaseStatus(session, db)
+			dbStatus := collector_mongod.GetDatabaseStatus(session, db)
 
 			if dbStatus != nil {
 				glog.Info("exporting Database Metrics")
