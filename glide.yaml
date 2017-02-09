@@ -1,4 +1,4 @@
-package: github.com/dcu/mongodb_exporter
+package: github.com/Kalsi13/mandeep123
 import:
 - package: github.com/golang/glog
 - package: github.com/prometheus/client_golang
