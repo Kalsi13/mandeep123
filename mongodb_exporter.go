@@ -4,17 +4,17 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	slog "log"
-	"net/http"
+	
+	
 	"os"
 	"strings"
 
 
 	"github.com/Kalsi13/mandeep123/collector"
 	"github.com/Kalsi13/mandeep123/shared"
-        "gopkg.in/yaml.v2"
+      
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 )
