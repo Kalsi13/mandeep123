@@ -53,7 +53,7 @@ func NewMongodbCollector(opts MongodbCollectorOpts) *MongodbCollector {
 // Describe describes all mongodb's metrics.
 func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 	glog.Info("Describing groups")
-	session := shared.MongoSession(exporter.Opts.URI)
+	session := shared.MongoSession(exporter.Opts.toSessionOps())
 	defer session.Close()
 	if session != nil {
 		serverStatus := collector_mongos.GetServerStatus(session)
@@ -65,7 +65,7 @@ func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect collects all mongodb's metrics.
 func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
-	mongoSess := shared.MongoSession(exporter.Opts.URI)
+	mongoSess := shared.MongoSession(exporter.Opts.toSessionOps())
 	defer mongoSess.Close()
 	if mongoSess != nil {
 		serverVersion, err := shared.MongoSessionServerVersion(mongoSess)
