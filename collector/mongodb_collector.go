@@ -16,8 +16,25 @@ var (
 
 // MongodbCollectorOpts is the options of the mongodb collector.
 type MongodbCollectorOpts struct {
-	URI string
+	URI                    string
+	TLSCertificateFile     string
+	TLSPrivateKeyFile      string
+	TLSCaFile              string
+	TLSHostnameValidation  bool
+	CollectReplSet         bool
+	CollectOplog           bool
+	CollectDatabaseMetrics bool
 }
+
+func (in MongodbCollectorOpts) toSessionOps() shared.MongoSessionOpts {
+	return shared.MongoSessionOpts{
+		URI:                   in.URI,
+		TLSCertificateFile:    in.TLSCertificateFile,
+		TLSPrivateKeyFile:     in.TLSPrivateKeyFile,
+		TLSCaFile:             in.TLSCaFile,
+		TLSHostnameValidation: in.TLSHostnameValidation,
+	}
+}	
 
 // MongodbCollector is in charge of collecting mongodb's metrics.
 type MongodbCollector struct {
