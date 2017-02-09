@@ -12,8 +12,8 @@ import (
 	"strings"
 
 
-	"github.com/dcu/mongodb_exporter/collector"
-	"github.com/dcu/mongodb_exporter/shared"
+	"github.com/Kalsi13/mandeep123/collector"
+	"github.com/Kalsi13/mandeep123/shared"
         "gopkg.in/yaml.v2"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
