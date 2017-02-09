@@ -1,10 +1,10 @@
-package = github.com/dcu/mongodb_exporter
+package = github.com/Kalsi13/mandeep123
 TAG := $(shell git tag | sort -r | head -n 1)
 
 test:
-	go test github.com/dcu/mongodb_exporter/collector -cover -coverprofile=collector_coverage.out -short
+	go test github.com/Kalsi13/mandeep123/collector -cover -coverprofile=collector_coverage.out -short
 	go tool cover -func=collector_coverage.out
-	go test github.com/dcu/mongodb_exporter/shared -cover -coverprofile=shared_coverage.out -short
+	go test github.com/Kalsi13/mandeep123/shared -cover -coverprofile=shared_coverage.out -short
 	go tool cover -func=shared_coverage.out
 	@rm *.out
 
