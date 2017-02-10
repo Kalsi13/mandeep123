@@ -1,9 +1,9 @@
 package collector
 
 import (
-	"github.com/Kalsi13/mandeep123/shared"
-	"github.com/Kalsi13/mandeep123/collector/mongod"
-	"github.com/Kalsi13/mandeep123/collector/mongos"
+	"github.com/Percona-Lab/prometheus_mongodb_exporter/shared"
+	"github.com/Percona-Lab/prometheus_mongodb_exporter/collector/mongod"
+	"github.com/Percona-Lab/prometheus_mongodb_exporter/collector/mongos"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/mgo.v2"
@@ -16,25 +16,8 @@ var (
 
 // MongodbCollectorOpts is the options of the mongodb collector.
 type MongodbCollectorOpts struct {
-	URI                    string
-	TLSCertificateFile     string
-	TLSPrivateKeyFile      string
-	TLSCaFile              string
-	TLSHostnameValidation  bool
-	CollectReplSet         bool
-	CollectOplog           bool
-	CollectDatabaseMetrics bool
+	URI string
 }
-
-func (in MongodbCollectorOpts) toSessionOps() shared.MongoSessionOpts {
-	return shared.MongoSessionOpts{
-		URI:                   in.URI,
-		TLSCertificateFile:    in.TLSCertificateFile,
-		TLSPrivateKeyFile:     in.TLSPrivateKeyFile,
-		TLSCaFile:             in.TLSCaFile,
-		TLSHostnameValidation: in.TLSHostnameValidation,
-	}
-}	
 
 // MongodbCollector is in charge of collecting mongodb's metrics.
 type MongodbCollector struct {
@@ -53,7 +36,7 @@ func NewMongodbCollector(opts MongodbCollectorOpts) *MongodbCollector {
 // Describe describes all mongodb's metrics.
 func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 	glog.Info("Describing groups")
-	session := shared.MongoSession(exporter.Opts.toSessionOps())
+	session := shared.MongoSession(exporter.Opts.URI)
 	defer session.Close()
 	if session != nil {
 		serverStatus := collector_mongos.GetServerStatus(session)
@@ -65,7 +48,7 @@ func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect collects all mongodb's metrics.
 func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
-	mongoSess := shared.MongoSession(exporter.Opts.toSessionOps())
+	mongoSess := shared.MongoSession(exporter.Opts.URI)
 	defer mongoSess.Close()
 	if mongoSess != nil {
 		serverVersion, err := shared.MongoSessionServerVersion(mongoSess)
